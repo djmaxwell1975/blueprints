@@ -1,0 +1,37 @@
+
+blueprint:
+  name: Dawn iPhone Internet Control
+  description: Blueprint to automate DNS-based internet blocking/unblocking of Dawn's iPhone using Pi-hole, referencing external rest_command services.
+  domain: automation
+  input:
+    block_time:
+      name: Block Time
+      description: Time to block internet access
+      selector:
+        time:
+    unblock_time:
+      name: Unblock Time
+      description: Time to unblock internet access
+      selector:
+        time:
+
+trigger:
+  - platform: time
+    at: !input block_time
+  - platform: time
+    at: !input unblock_time
+
+condition: []
+
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ now().strftime('%H:%M:%S') == (block_time | string) }}"
+        sequence:
+          - service: rest_command.block_dawns_iphone
+      - conditions:
+          - condition: template
+            value_template: "{{ now().strftime('%H:%M:%S') == (unblock_time | string) }}"
+        sequence:
+          - service: rest_command.unblock_dawns_iphone
