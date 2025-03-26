@@ -1,0 +1,79 @@
+
+blueprint:
+  name: Dawn iPhone Internet Control
+  description: Blueprint to automate DNS-based internet blocking/unblocking of Dawn's iPhone using Pi-hole.
+  domain: automation
+  input:
+    pihole_ip:
+      name: Pi-hole IP
+      description: The IP address of your Pi-hole server
+      selector:
+        text:
+    pihole_api_key:
+      name: Pi-hole API Key
+      description: Your Pi-hole API key (auth token)
+      selector:
+        text:
+    device_ip:
+      name: Device IP Address
+      description: The static IP address of Dawn's iPhone
+      selector:
+        text:
+    group_id:
+      name: Pi-hole Group ID
+      description: The Group ID for the Blocked Child Device group
+      selector:
+        number:
+          min: 1
+          max: 10
+          mode: box
+    block_time:
+      name: Block Time
+      description: Time to block internet access
+      selector:
+        time:
+    unblock_time:
+      name: Unblock Time
+      description: Time to unblock internet access
+      selector:
+        time:
+
+trigger:
+  - platform: time
+    at: !input block_time
+  - platform: time
+    at: !input unblock_time
+
+variables:
+  pihole_ip: !input pihole_ip
+  api_key: !input pihole_api_key
+  device_ip: !input device_ip
+  group_id: !input group_id
+
+condition: []
+
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ now().strftime('%H:%M:%S') == (block_time | string) }}"
+        sequence:
+          - service: rest_command.block_dawns_iphone
+      - conditions:
+          - condition: template
+            value_template: "{{ now().strftime('%H:%M:%S') == (unblock_time | string) }}"
+        sequence:
+          - service: rest_command.unblock_dawns_iphone
+
+rest_command:
+  block_dawns_iphone:
+    url: "http://{{ pihole_ip }}/admin/api.php"
+    method: POST
+    content_type: "application/x-www-form-urlencoded"
+    payload: "addclient={{ device_ip }},Dawns-iPhone,{{ group_id }}&auth={{ api_key }}"
+
+  unblock_dawns_iphone:
+    url: "http://{{ pihole_ip }}/admin/api.php"
+    method: POST
+    content_type: "application/x-www-form-urlencoded"
+    payload: "deleteclient={{ device_ip }}&auth={{ api_key }}"
